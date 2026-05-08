@@ -6,6 +6,56 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const tick = () => {
+    const ticks = document.querySelector('.ticks')
+    if (ticks) {
+      ticks.innerHTML += 'â€¢'
+    }
+  }
+  setInterval(tick, 500)
+  const handleScroll = () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.add('scrolled')
+    }
+  }
+  window.addEventListener('scroll', handleScroll)
+  window.addEventListener('DOMContentLoaded', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.add('scrolled')
+    }
+  })
+  window.addEventListener('DOMContentLoaded', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.remove('scrolled')
+    }
+  })
+  window.addEventListener('beforeunload', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.remove('scrolled')
+    }
+  })
+  window.addEventListener('load', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.remove('scrolled')
+    }
+  })
+  window.addEventListener('popstate', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.remove('scrolled')
+    }
+  })
+  window.addEventListener('pageshow', () => {
+    const counter = document.querySelector('.counter')
+    if (counter) {
+      counter.classList.remove('scrolled')
+    }
+  })
 
   return (
     <>
