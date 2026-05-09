@@ -18,6 +18,15 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Log environment variables (without exposing secrets)
+    console.log("Environment check:", {
+      hasClientId: !!process.env.DISCORD_CLIENT_ID,
+      hasClientSecret: !!process.env.DISCORD_CLIENT_SECRET,
+      hasJwtSecret: !!process.env.JWT_SECRET,
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_KEY,
+    });
+
     // Exchange code for Discord access token
     const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
       method: "POST",
@@ -33,13 +42,22 @@ export const handler: Handler = async (event) => {
       }),
     });
 
+    console.log("Discord token response status:", tokenResponse.status);
+    const tokenText = await tokenResponse.text();
+    console.log("Discord token response (first 100 chars):", tokenText.substring(0, 100));
+
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text();
-      console.error("Discord token exchange failed:", tokenResponse.status, errorData);
+      console.error("Discord token exchange failed:", tokenResponse.status, tokenText);
       throw new Error(`Failed to exchange code for token: ${tokenResponse.status}`);
     }
 
-    const tokenData = await tokenResponse.json();
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenText);
+    } catch (e) {
+      console.error("Failed to parse token response as JSON:", tokenText);
+      throw new Error("Invalid response from Discord API");
+    }
 
     // Get Discord user info
     const userResponse = await fetch("https://discord.com/api/users/@me", {
