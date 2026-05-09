@@ -6,12 +6,26 @@ export default function Home() {
   const devUser = import.meta.env.VITE_DEV_BYPASS_USER;
 
   useEffect(() => {
+    // Check for dev bypass first
     if (devUser) {
       navigate(`/user/${devUser}`);
+      return;
     }
-  }, []);
 
-  useEffect(() => {}, []);
+    // Check if user is already authenticated
+    fetch("/api/auth-check", {
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.lastfmUsername) {
+          navigate(`/user/${data.lastfmUsername}`);
+        }
+      })
+      .catch(() => {
+        // Not authenticated, stay on home page
+      });
+  }, [navigate, devUser]);
 
   function toggleTheme() {
     const html = document.documentElement;
