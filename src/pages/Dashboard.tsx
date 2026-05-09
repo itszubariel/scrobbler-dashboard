@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getUserInfo } from "../lib/lastfm";
 import Overview from "../components/Overview";
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
 
 export default function Dashboard() {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [section, setSection] = useState("overview");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -39,6 +40,18 @@ export default function Dashboard() {
     } else {
       html.setAttribute("data-theme", "dark");
       localStorage.setItem("theme", "dark");
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await fetch("/api/auth-logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
   }
 
@@ -171,6 +184,22 @@ export default function Dashboard() {
                   >
                     view on last.fm →
                   </a>
+                  <button
+                    onClick={handleLogout}
+                    className="profile-dropdown-link"
+                    style={{
+                      width: "100%",
+                      marginTop: "8px",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--color-ember)",
+                      fontFamily: "inherit",
+                      fontSize: "inherit",
+                    }}
+                  >
+                    log out →
+                  </button>
                 </div>
               )}
             </div>
