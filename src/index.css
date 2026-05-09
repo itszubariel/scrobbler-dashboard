@@ -1229,7 +1229,8 @@ body::before {
   gap: 4px;
   border-radius: var(--radius-md);
   overflow: hidden;
-  max-width: 900px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .chart-grid-3x3 {
