@@ -34,7 +34,9 @@ export const handler: Handler = async (event) => {
     });
 
     if (!tokenResponse.ok) {
-      throw new Error("Failed to exchange code for token");
+      const errorData = await tokenResponse.text();
+      console.error("Discord token exchange failed:", tokenResponse.status, errorData);
+      throw new Error(`Failed to exchange code for token: ${tokenResponse.status}`);
     }
 
     const tokenData = await tokenResponse.json();
@@ -47,10 +49,13 @@ export const handler: Handler = async (event) => {
     });
 
     if (!userResponse.ok) {
-      throw new Error("Failed to fetch Discord user");
+      const errorData = await userResponse.text();
+      console.error("Discord user fetch failed:", userResponse.status, errorData);
+      throw new Error(`Failed to fetch Discord user: ${userResponse.status}`);
     }
 
     const discordUser = await userResponse.json();
+    console.log("Discord user authenticated:", discordUser.id);
 
     // Check if user has linked Last.fm account in Supabase
     const { data: userData, error } = await supabase
@@ -64,6 +69,8 @@ export const handler: Handler = async (event) => {
       console.error("Supabase error:", error);
       throw new Error("Database query failed");
     }
+
+    console.log("User data from Supabase:", userData ? "found" : "not found");
 
     // Create secure JWT session token
     const sessionData = {
