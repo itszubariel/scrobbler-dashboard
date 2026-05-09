@@ -44,11 +44,20 @@ export const handler: Handler = async (event) => {
 
     console.log("Discord token response status:", tokenResponse.status);
     const tokenText = await tokenResponse.text();
-    console.log("Discord token response (first 100 chars):", tokenText.substring(0, 100));
+    console.log(
+      "Discord token response (first 100 chars):",
+      tokenText.substring(0, 100),
+    );
 
     if (!tokenResponse.ok) {
-      console.error("Discord token exchange failed:", tokenResponse.status, tokenText);
-      throw new Error(`Failed to exchange code for token: ${tokenResponse.status}`);
+      console.error(
+        "Discord token exchange failed:",
+        tokenResponse.status,
+        tokenText,
+      );
+      throw new Error(
+        `Failed to exchange code for token: ${tokenResponse.status}`,
+      );
     }
 
     let tokenData;
@@ -68,7 +77,11 @@ export const handler: Handler = async (event) => {
 
     if (!userResponse.ok) {
       const errorData = await userResponse.text();
-      console.error("Discord user fetch failed:", userResponse.status, errorData);
+      console.error(
+        "Discord user fetch failed:",
+        userResponse.status,
+        errorData,
+      );
       throw new Error(`Failed to fetch Discord user: ${userResponse.status}`);
     }
 
