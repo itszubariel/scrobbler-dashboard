@@ -44,6 +44,12 @@ export default function Dashboard() {
   }
 
   async function handleLogout() {
+    const confirmed = window.confirm(
+      "Are you sure you want to log out? This will take you back to the main page."
+    );
+    
+    if (!confirmed) return;
+
     try {
       await fetch("/api/auth-logout", {
         method: "POST",
