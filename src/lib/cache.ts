@@ -53,14 +53,15 @@ export function getCachedDataSync<T>(key: string): T | null {
   const now = Date.now();
 
   // Check persistent memory cache first
-  let cached = persistentCache.get(key);
+  let cached: CacheEntry | undefined = persistentCache.get(key);
 
   // If not in memory, check localStorage
   if (!cached) {
-    cached = getFromLocalStorage(key);
-    if (cached) {
+    const fromStorage = getFromLocalStorage(key);
+    if (fromStorage) {
+      cached = fromStorage;
       // Restore to persistent memory cache
-      persistentCache.set(key, cached);
+      persistentCache.set(key, fromStorage);
     }
   }
 
@@ -81,14 +82,15 @@ export async function cachedFetch<T>(
   const now = Date.now();
 
   // Check persistent memory cache first (fastest)
-  let cached = persistentCache.get(key);
+  let cached: CacheEntry | undefined = persistentCache.get(key);
 
   // If not in memory, check localStorage
   if (!cached) {
-    cached = getFromLocalStorage(key);
-    if (cached) {
+    const fromStorage = getFromLocalStorage(key);
+    if (fromStorage) {
+      cached = fromStorage;
       // Restore to persistent memory cache
-      persistentCache.set(key, cached);
+      persistentCache.set(key, fromStorage);
     }
   }
 

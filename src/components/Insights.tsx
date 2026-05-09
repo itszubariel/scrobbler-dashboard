@@ -330,33 +330,33 @@ export default function Insights({ username }: Props) {
       const u2Genres = await getGenres(u2Artists);
 
       // Normalize data
-      const artistSet1 = new Set(
+      const artistSet1 = new Set<string>(
         u1Artists.map((a: any) => a.name.toLowerCase()),
       );
-      const artistSet2 = new Set(
+      const artistSet2 = new Set<string>(
         u2Artists.map((a: any) => a.name.toLowerCase()),
       );
 
-      const trackSet1 = new Set(
+      const trackSet1 = new Set<string>(
         u1Tracks.map(
           (t: any) =>
             `${t.name.toLowerCase()}::${t.artist?.name?.toLowerCase()}`,
         ),
       );
-      const trackSet2 = new Set(
+      const trackSet2 = new Set<string>(
         u2Tracks.map(
           (t: any) =>
             `${t.name.toLowerCase()}::${t.artist?.name?.toLowerCase()}`,
         ),
       );
 
-      const albumSet1 = new Set(
+      const albumSet1 = new Set<string>(
         u1Albums.map(
           (a: any) =>
             `${a.name.toLowerCase()}::${a.artist?.name?.toLowerCase()}`,
         ),
       );
-      const albumSet2 = new Set(
+      const albumSet2 = new Set<string>(
         u2Albums.map(
           (a: any) =>
             `${a.name.toLowerCase()}::${a.artist?.name?.toLowerCase()}`,
