@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getTopArtists } from "../lib/lastfm";
 import { cachedFetch, getCachedDataSync, CACHE_TTL } from "../lib/cache";
 import { SkeletonTaste } from "./SkeletonLoader";
+import { useModal } from "../context/ModalContext";
 
 interface Props {
   username: string;
@@ -33,6 +34,7 @@ function isYearTag(tag: string): boolean {
 }
 
 export default function Taste({ username }: Props) {
+  const { openModal } = useModal();
   // Tier 2: Persistent cache with stable key
   const [genres, setGenres] = useState<{ name: string; percentage: number }[]>(
     () => {
@@ -137,14 +139,12 @@ export default function Taste({ username }: Props) {
           {genres.map((g, i) => (
             <div key={i} className="taste-row">
               <span className="taste-rank">{i + 1}</span>
-              <a
-                href={`https://www.last.fm/tag/${encodeURIComponent(g.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
                 className="taste-name taste-name-link"
+                onClick={() => openModal("genre", g.name)}
               >
                 {g.name}
-              </a>
+              </button>
               <div className="taste-track">
                 <div
                   className="taste-fill"

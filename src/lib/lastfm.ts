@@ -43,6 +43,14 @@ export async function getTopTracks(
   return fetchLastFM("user.getTopTracks", { user: username, period, limit });
 }
 
-export async function getRecentTracks(username: string, limit = "20") {
-  return fetchLastFM("user.getRecentTracks", { user: username, limit });
+export async function getRecentTracks(username: string, limit = "20", page = "1") {
+  return fetchLastFM("user.getRecentTracks", { user: username, limit, page });
+}
+
+export async function getRecentTracksPaginated(
+  username: string,
+  limit: string,
+  page: string,
+) {
+  return fetchLastFM("user.getRecentTracks", { user: username, limit, page });
 }

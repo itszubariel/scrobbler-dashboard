@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getUserInfo, getTopArtists, getTopTracks } from "../lib/lastfm";
+import {
+  getUserInfo,
+  getTopArtists,
+  getTopTracks,
+  getRecentTracks,
+} from "../lib/lastfm";
 import {
   cachedFetch,
   getCachedDataSync,
@@ -7,11 +12,18 @@ import {
   setMemoryCache,
   CACHE_TTL,
 } from "../lib/cache";
-import NowPlaying from "./NowPlaying";
 import { SkeletonOverview } from "./SkeletonLoader";
+import { useModal } from "../context/ModalContext";
 
 interface Props {
   username: string;
+}
+
+interface OverviewData {
+  user: any;
+  topArtist: any;
+  topTrack: any;
+  bio: string;
 }
 
 async function fetchArtistImage(artistName: string): Promise<string | null> {
@@ -46,109 +58,53 @@ async function fetchTrackImage(
 }
 
 export default function Overview({ username }: Props) {
-  // Tier 2: Persistent cache for user profile
-  const [user, setUser] = useState<any>(() => {
-    const cached = getCachedDataSync<any>(`overview-user-${username}`);
-    return cached?.user || null;
-  });
+  const { openModal } = useModal();
+  const [overviewData, setOverviewData] = useState<OverviewData | null>(
+    () => getCachedDataSync<OverviewData>(`overview-all-${username}`) || null,
+  );
 
-  // Tier 1: Memory-only for scrobble count (updates frequently)
-  const [scrobbleCount, setScrobbleCount] = useState(() => {
-    const memoryCached = getMemoryCache<number>(`scrobble-count-${username}`);
-    if (memoryCached) return memoryCached;
-
-    // Fallback to user data from localStorage
-    const userCached = getCachedDataSync<any>(`overview-user-${username}`);
-    return userCached?.user?.playcount ? Number(userCached.user.playcount) : 0;
-  });
-
-  // Tier 2: Persistent cache for top artist
-  const [topArtist, setTopArtist] = useState<any>(() => {
-    const cached = getCachedDataSync<any>(`overview-top-artist-${username}`);
-    return cached || null;
-  });
-
-  // Tier 2: Persistent cache for top track
-  const [topTrack, setTopTrack] = useState<any>(() => {
-    const cached = getCachedDataSync<any>(`overview-top-track-${username}`);
-    return cached || null;
-  });
-
-  // Tier 2: Persistent cache for AI bio
-  const [bio, setBio] = useState<string>(() => {
-    const cached = getCachedDataSync<string>(`bio-${username}`);
-    return cached || "";
-  });
+  const [nowPlaying, setNowPlaying] = useState<any>(
+    () => getMemoryCache<any>(`now-playing-${username}`) || null,
+  );
+  const [nowPlayingLoading, setNowPlayingLoading] = useState(
+    () => getMemoryCache<any>(`now-playing-${username}`) === null,
+  );
 
   useEffect(() => {
-    // Fetch user info
-    cachedFetch(
-      `overview-user-${username}`,
-      () => getUserInfo(username),
-      CACHE_TTL.TOP_ARTISTS,
-    ).then((data) => {
-      const userData = data.user;
-      if (JSON.stringify(userData) !== JSON.stringify(user)) {
-        setUser(userData);
-        // Update scrobble count in memory
-        const count = Number(userData.playcount);
-        setScrobbleCount(count);
-        setMemoryCache(`scrobble-count-${username}`, count);
-      }
-    });
-
-    // Fetch top artist with image
-    cachedFetch(
-      `overview-top-artist-${username}`,
+    const cachedOverview = cachedFetch<OverviewData>(
+      `overview-all-${username}`,
       async () => {
-        const data = await getTopArtists(username, "overall", "1");
-        const artist = data.topartists?.artist?.[0];
-        if (artist) {
-          const image = await fetchArtistImage(artist.name);
-          return { ...artist, image };
-        }
-        return null;
-      },
-      CACHE_TTL.TOP_ARTISTS,
-    ).then((data) => {
-      if (JSON.stringify(data) !== JSON.stringify(topArtist)) {
-        setTopArtist(data);
-      }
-    });
+        const [userRes, artistsRes, tracksRes] = await Promise.all([
+          getUserInfo(username),
+          getTopArtists(username, "overall", "5"),
+          getTopTracks(username, "overall", "1"),
+        ]);
 
-    // Fetch top track with image
-    cachedFetch(
-      `overview-top-track-${username}`,
-      async () => {
-        const data = await getTopTracks(username, "overall", "1");
-        const track = data.toptracks?.track?.[0];
-        if (track) {
-          const image = await fetchTrackImage(
-            track.name,
-            track.artist?.name || "",
-          );
-          return { ...track, image };
-        }
-        return null;
-      },
-      CACHE_TTL.TOP_TRACKS,
-    ).then((data) => {
-      if (JSON.stringify(data) !== JSON.stringify(topTrack)) {
-        setTopTrack(data);
-      }
-    });
+        const user = userRes.user;
+        const artists = artistsRes.topartists?.artist || [];
+        const rawTrack = tracksRes.toptracks?.track?.[0] || null;
 
-    // Fetch AI bio
-    cachedFetch(
-      `bio-${username}`,
-      async () => {
+        // Fetch top artist image + top track image in parallel
+        const topArtistRaw = artists[0] || null;
+        const [artistImage, trackImage] = await Promise.all([
+          topArtistRaw
+            ? fetchArtistImage(topArtistRaw.name)
+            : Promise.resolve(null),
+          rawTrack
+            ? fetchTrackImage(rawTrack.name, rawTrack.artist?.name || "")
+            : Promise.resolve(null),
+        ]);
+
+        const topArtist = topArtistRaw
+          ? { ...topArtistRaw, image: artistImage }
+          : null;
+        const topTrack = rawTrack ? { ...rawTrack, image: trackImage } : null;
+
+        // Fetch AI bio (uses top 5 artists already fetched)
+        let bio = "";
         try {
-          // Get top 5 artists
-          const artistsData = await getTopArtists(username, "overall", "5");
-          const artists = artistsData.topartists?.artist || [];
-          const topArtists = artists.map((a: any) => a.name).join(", ");
+          const topArtistNames = artists.map((a: any) => a.name).join(", ");
 
-          // Get top 3 genres from those artists
           const tagCounts: Record<string, number> = {};
           await Promise.all(
             artists.map(async (a: any) => {
@@ -171,29 +127,42 @@ export default function Overview({ username }: Props) {
             .map(([name]) => name)
             .join(", ");
 
-          // Get total scrobbles
-          const userInfo = await getUserInfo(username);
-          const totalScrobbles = userInfo.user.playcount;
-
-          // Generate bio
-          const res = await fetch(
-            `/api/generate-bio?topArtists=${encodeURIComponent(topArtists)}&topGenres=${encodeURIComponent(topGenres)}&totalScrobbles=${totalScrobbles}`,
+          const bioRes = await fetch(
+            `/api/generate-bio?topArtists=${encodeURIComponent(topArtistNames)}&topGenres=${encodeURIComponent(topGenres)}&totalScrobbles=${user.playcount}`,
           );
-          const bioData = await res.json();
-          return bioData.bio || "";
-        } catch {
-          return "";
-        }
+          const bioData = await bioRes.json();
+          bio = bioData.bio || "";
+        } catch {}
+
+        return { user, topArtist, topTrack, bio };
       },
-      6 * 60 * 60 * 1000, // 6 hours
-    ).then((bioText) => {
-      if (bioText !== bio) {
-        setBio(bioText);
-      }
+      CACHE_TTL.TOP_ARTISTS, // 2 hours
+    );
+
+    const cachedNowPlaying = getMemoryCache<any>(`now-playing-${username}`)
+      ? Promise.resolve(getMemoryCache<any>(`now-playing-${username}`))
+      : getRecentTracks(username, "1").then((data) => {
+          const t = data.recenttracks?.track?.[0] || null;
+          if (t) setMemoryCache(`now-playing-${username}`, t);
+          setNowPlayingLoading(false);
+          return t;
+        });
+
+    Promise.all([cachedOverview, cachedNowPlaying]).then(([overview, np]) => {
+      setOverviewData(overview);
+      if (np) setNowPlaying(np);
+      setNowPlayingLoading(false);
     });
   }, [username]);
 
-  if (!user && !topArtist && !topTrack) return <SkeletonOverview />;
+  if (!overviewData) return <SkeletonOverview />;
+
+  const { user, topArtist, topTrack, bio } = overviewData;
+  const scrobbleCount = Number(user?.playcount) || 0;
+
+  const npIsLive = nowPlaying?.["@attr"]?.nowplaying === "true";
+  const npImage =
+    nowPlaying?.image?.[3]?.["#text"] || nowPlaying?.image?.[2]?.["#text"];
 
   return (
     <div className="overview-page">
@@ -208,7 +177,7 @@ export default function Overview({ username }: Props) {
           <p className="overview-banner-scrobbles">
             {scrobbleCount.toLocaleString()} scrobbles
           </p>
-          {bio && (
+          {bio ? (
             <>
               <p
                 style={{
@@ -223,8 +192,7 @@ export default function Overview({ username }: Props) {
                 ✦ ai generated
               </p>
             </>
-          )}
-          {!bio && (
+          ) : (
             <div className="overview-banner-meta">
               {user?.country && <span>{user.country}</span>}
               <span>
@@ -253,20 +221,12 @@ export default function Overview({ username }: Props) {
           )}
           <div className="overview-stat-card-content">
             <p className="overview-stat-card-label">top artist</p>
-            {topArtist?.url ? (
-              <a
-                href={topArtist.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="overview-stat-card-title overview-stat-card-link"
-              >
-                {topArtist.name}
-              </a>
-            ) : (
-              <p className="overview-stat-card-title">
-                {topArtist?.name || "—"}
-              </p>
-            )}
+            <button
+              className="overview-stat-card-title overview-stat-card-link"
+              onClick={() => topArtist && openModal("artist", topArtist.name)}
+            >
+              {topArtist?.name || "—"}
+            </button>
             {topArtist && (
               <p className="overview-stat-card-subtitle">
                 {Number(topArtist.playcount).toLocaleString()} plays
@@ -289,20 +249,15 @@ export default function Overview({ username }: Props) {
           )}
           <div className="overview-stat-card-content">
             <p className="overview-stat-card-label">top track</p>
-            {topTrack?.url ? (
-              <a
-                href={topTrack.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="overview-stat-card-title overview-stat-card-link"
-              >
-                {topTrack.name}
-              </a>
-            ) : (
-              <p className="overview-stat-card-title">
-                {topTrack?.name || "—"}
-              </p>
-            )}
+            <button
+              className="overview-stat-card-title overview-stat-card-link"
+              onClick={() =>
+                topTrack &&
+                openModal("track", topTrack.name, topTrack.artist?.name)
+              }
+            >
+              {topTrack?.name || "—"}
+            </button>
             {topTrack && (
               <p className="overview-stat-card-subtitle">
                 {Number(topTrack.playcount).toLocaleString()} plays
@@ -326,7 +281,75 @@ export default function Overview({ username }: Props) {
         </div>
       </div>
 
-      <NowPlaying username={username} />
+      {nowPlayingLoading ? (
+        <div className="recent-header-card">
+          <div
+            className="skeleton-image"
+            style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "8px",
+              flexShrink: 0,
+            }}
+          />
+          <div className="recent-header-content">
+            <div
+              className="skeleton-text"
+              style={{ width: "80px", height: "12px", marginBottom: "10px" }}
+            />
+            <div
+              className="skeleton-text"
+              style={{ width: "200px", height: "16px", marginBottom: "8px" }}
+            />
+            <div
+              className="skeleton-text"
+              style={{ width: "140px", height: "13px" }}
+            />
+          </div>
+        </div>
+      ) : nowPlaying ? (
+        <div className="recent-header-card">
+          {npImage ? (
+            <img
+              src={npImage}
+              alt={nowPlaying.name}
+              className="recent-header-art"
+            />
+          ) : (
+            <div className="recent-header-placeholder">
+              {nowPlaying.name?.charAt(0) || "—"}
+            </div>
+          )}
+          <div className="recent-header-content">
+            <div className="recent-header-label">
+              {npIsLive ? "▶ now playing" : "◷ last played"}
+            </div>
+            <div className="recent-header-title">
+              <button
+                className="recent-header-name"
+                onClick={() =>
+                  openModal(
+                    "track",
+                    nowPlaying.name,
+                    nowPlaying.artist?.["#text"],
+                  )
+                }
+              >
+                {nowPlaying.name}
+              </button>
+            </div>
+            <div className="recent-header-artist">
+              {nowPlaying.artist?.["#text"]}
+            </div>
+            {nowPlaying.album?.["#text"] && (
+              <div className="recent-header-album">
+                {nowPlaying.album["#text"]}
+              </div>
+            )}
+          </div>
+          {npIsLive && <div className="recent-header-pulse" />}
+        </div>
+      ) : null}
     </div>
   );
 }

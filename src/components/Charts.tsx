@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { getTopArtists, getTopTracks, getTopAlbums } from "../lib/lastfm";
 import { cachedFetch, getCachedDataSync, CACHE_TTL } from "../lib/cache";
-
-interface Props {
-  username: string;
-}
+import { useModal } from "../context/ModalContext";
+import type { ModalType } from "../context/ModalContext";
 
 const PERIODS = [
   { label: "7 days", value: "7day" },
@@ -24,12 +22,17 @@ const GRID_SIZES = [
   { label: "6×6", value: 6, count: 36 },
 ];
 
+function computeGridSize(): number {
+  if (typeof window === "undefined") return 3;
+  return window.innerWidth > 1280 ? 4 : 3;
+}
+
 const LASTFM_PLACEHOLDER_HASH = "2a96cbd8b46e442fc41c2b86b821562f";
 
 async function fetchArtistImage(artistName: string): Promise<string | null> {
   try {
     const res = await fetch(
-      `/api/deezer-image?artist=${encodeURIComponent(artistName)}`,
+      `/.netlify/functions/deezer-image?artist=${encodeURIComponent(artistName)}`,
     );
     const data = await res.json();
     return data.imageUrl || null;
@@ -82,14 +85,25 @@ async function fetchTrackImage(
 }
 
 export default function Charts({ username }: Props) {
+  const { openModal } = useModal();
   const [period, setPeriod] = useState("overall");
   const [type, setType] = useState("artists");
-  const [gridSize, setGridSize] = useState(6);
+  const [gridSize, setGridSize] = useState(computeGridSize);
 
-  // Tier 2: Initialize from localStorage with stable cache key
+  // Update grid size on window resize
+  useEffect(() => {
+    function handleResize() {
+      setGridSize(computeGridSize());
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Tier 2: Initialize from localStorage for initial state only
   const [items, setItems] = useState<any[]>(() => {
-    const gridCount = GRID_SIZES.find((g) => g.value === 6)?.count || 36;
-    const cacheKey = `charts-${type}-${period}-${gridCount}-${username}`;
+    const gridCount =
+      GRID_SIZES.find((g) => g.value === computeGridSize())?.count || 9;
+    const cacheKey = `charts-artists-overall-${gridCount}-${username}`;
     const cached = getCachedDataSync<any[]>(cacheKey);
     return cached || [];
   });
@@ -98,6 +112,18 @@ export default function Charts({ username }: Props) {
 
   useEffect(() => {
     const gridCount = GRID_SIZES.find((g) => g.value === gridSize)?.count || 9;
+    const cacheKey = `charts-${type}-${period}-${gridCount}-${username}`;
+
+    // Check cache first
+    const cachedData = getCachedDataSync<any[]>(cacheKey);
+    if (cachedData) {
+      setItems(cachedData);
+      setLoading(false);
+      return;
+    }
+
+    // No cache, show loading and fetch
+    setLoading(true);
 
     let fetchFn: typeof getTopArtists;
     let dataKey: string;
@@ -119,17 +145,6 @@ export default function Charts({ username }: Props) {
       dataKey = "topalbums";
       itemKey = "album";
       cacheTTL = CACHE_TTL.TOP_ALBUMS;
-    }
-
-    const cacheKey = `charts-${type}-${period}-${gridCount}-${username}`;
-
-    // Check cache for this specific selection
-    const cachedData = getCachedDataSync<any[]>(cacheKey);
-    if (cachedData) {
-      setItems(cachedData);
-      setLoading(false);
-    } else {
-      setLoading(true);
     }
 
     cachedFetch(
@@ -171,14 +186,14 @@ export default function Charts({ username }: Props) {
       },
       cacheTTL,
     ).then((data) => {
-      if (JSON.stringify(data) !== JSON.stringify(items)) {
-        setItems(data);
-      }
+      setItems(data);
       setLoading(false);
     });
   }, [username, period, type, gridSize]);
 
-  if (loading && items.length === 0) {
+  if (loading) {
+    const skeletonCount =
+      GRID_SIZES.find((g) => g.value === gridSize)?.count || 9;
     return (
       <div className="charts-section">
         <div className="section-header">
@@ -201,17 +216,6 @@ export default function Charts({ username }: Props) {
                 </button>
               ))}
             </div>
-            <div className="control-group">
-              {GRID_SIZES.map((g) => (
-                <button
-                  key={g.value}
-                  className={`control-btn ${gridSize === g.value ? "active" : ""}`}
-                  onClick={() => setGridSize(g.value)}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
           </div>
           <div className="charts-controls-row">
             <div className="control-group control-group-full">
@@ -227,8 +231,8 @@ export default function Charts({ username }: Props) {
             </div>
           </div>
         </div>
-        <div className="chart-grid chart-grid-6x6">
-          {Array.from({ length: 36 }).map((_, i) => (
+        <div className={`chart-grid chart-grid-${gridSize}x${gridSize}`}>
+          {Array.from({ length: skeletonCount }).map((_, i) => (
             <div key={i} className="chart-cell">
               <div
                 className="skeleton-image"
@@ -263,17 +267,6 @@ export default function Charts({ username }: Props) {
               </button>
             ))}
           </div>
-          <div className="control-group">
-            {GRID_SIZES.map((g) => (
-              <button
-                key={g.value}
-                className={`control-btn ${gridSize === g.value ? "active" : ""}`}
-                onClick={() => setGridSize(g.value)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
         </div>
         <div className="charts-controls-row">
           <div className="control-group control-group-full">
@@ -295,9 +288,24 @@ export default function Charts({ username }: Props) {
             const img = item.fetchedImage;
             const name = item.name;
             const plays = item.playcount;
+            const artistName = item.artist?.name || "";
             const firstLetter = name.charAt(0).toUpperCase();
+            const modalType = (
+              type === "artists"
+                ? "artist"
+                : type === "tracks"
+                  ? "track"
+                  : "album"
+            ) as ModalType;
             return (
-              <div key={i} className="chart-cell">
+              <div
+                key={i}
+                className="chart-cell"
+                onClick={() =>
+                  openModal(modalType, name, artistName || undefined)
+                }
+                style={{ cursor: "pointer" }}
+              >
                 {img ? (
                   <img src={img} alt={name} />
                 ) : (

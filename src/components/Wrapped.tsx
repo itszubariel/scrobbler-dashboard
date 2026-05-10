@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { getTopArtists, getTopTracks, getUserInfo } from "../lib/lastfm";
 import { cachedFetch, getCachedDataSync, CACHE_TTL } from "../lib/cache";
 import { SkeletonWrapped } from "./SkeletonLoader";
+import { useModal } from "../context/ModalContext";
 
 interface Props {
   username: string;
@@ -60,6 +61,7 @@ async function fetchTrackImage(
 }
 
 export default function Wrapped({ username }: Props) {
+  const { openModal } = useModal();
   const [period, setPeriod] = useState("overall");
   const [slide, setSlide] = useState(0);
 
@@ -83,9 +85,10 @@ export default function Wrapped({ username }: Props) {
     if (cachedData) {
       setData(cachedData);
       setLoading(false);
-    } else {
-      setLoading(true);
+      return; // Don't fetch if we have cached data
     }
+
+    setLoading(true);
 
     cachedFetch(
       cacheKey,
@@ -279,6 +282,15 @@ export default function Wrapped({ username }: Props) {
       ref={containerRef}
       className={`wrapped-container ${isFullscreen ? "wrapped-fullscreen" : ""}`}
     >
+      {/* Fullscreen toggle — fixed in top-right corner of the container, always visible */}
+      <button
+        className="wrapped-fullscreen-btn"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {isFullscreen ? "✕" : "⛶"}
+      </button>
+
       {!isFullscreen && (
         <>
           <div className="section-header">
@@ -302,288 +314,349 @@ export default function Wrapped({ username }: Props) {
                 ))}
               </div>
             </div>
-            <button
-              className="wrapped-fullscreen-btn"
-              onClick={toggleFullscreen}
-            >
-              ⛶
-            </button>
           </div>
         </>
       )}
 
-      {isFullscreen && (
-        <div className="wrapped-fullscreen-header">
-          <button className="wrapped-fullscreen-btn" onClick={toggleFullscreen}>
-            ✕
-          </button>
-        </div>
-      )}
-
       <div className="wrapped-slides">
-        <div
-          className="wrapped-slide-track"
-          style={{ transform: `translateX(-${slide * 100}%)` }}
-        >
-          {/* SLIDE 1: COVER */}
-          <div className="wrapped-slide wrapped-slide-cover">
-            <div className="wrapped-slide-content">
-              <p className="wrapped-slide-eyebrow">scrobbler wrapped</p>
-              <h1 className="wrapped-slide-username">{data?.user.name}</h1>
-              <p className="wrapped-slide-scrobbles">
-                {Number(data?.user.playcount).toLocaleString()}
-              </p>
-              <p className="wrapped-slide-scrobbles-label">scrobbles</p>
-              <p className="wrapped-slide-period">{data?.periodLabel}</p>
+        {loading ? (
+          // Show skeleton while loading new period
+          <div className="wrapped-slide" style={{ background: "#111111" }}>
+            <div
+              className="wrapped-slide-content"
+              style={{ textAlign: "center" }}
+            >
+              <div
+                className="skeleton-text"
+                style={{
+                  width: "150px",
+                  height: "20px",
+                  margin: "0 auto 48px",
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              />
+              <div
+                className="skeleton-text"
+                style={{
+                  width: "300px",
+                  height: "48px",
+                  margin: "0 auto 48px",
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              />
+              <div
+                className="skeleton-text"
+                style={{
+                  width: "400px",
+                  height: "80px",
+                  margin: "0 auto",
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              />
             </div>
           </div>
-
-          {/* SLIDE 2: TOP ARTISTS PODIUM */}
-          <div className="wrapped-slide wrapped-slide-artists">
-            <div className="wrapped-slide-content">
-              <h2 className="wrapped-slide-heading">top artists</h2>
-              <div className="wrapped-podium">
-                {/* #4 - Far Left */}
-                {data?.artists[3] && (
-                  <div className="wrapped-podium-item wrapped-podium-4">
-                    <span className="wrapped-podium-rank">#4</span>
-                    {data.artists[3].image ? (
-                      <img
-                        src={data.artists[3].image}
-                        alt={data.artists[3].name}
-                        className="wrapped-podium-img"
-                      />
-                    ) : (
-                      <div className="wrapped-podium-placeholder">
-                        {data.artists[3].name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="wrapped-podium-name">
-                      {data.artists[3].name}
-                    </p>
-                    <p className="wrapped-podium-plays">
-                      {Number(data.artists[3].playcount).toLocaleString()} plays
-                    </p>
-                  </div>
-                )}
-
-                {/* #2 - Left Center */}
-                {data?.artists[1] && (
-                  <div className="wrapped-podium-item wrapped-podium-2">
-                    <span className="wrapped-podium-rank">#2</span>
-                    {data.artists[1].image ? (
-                      <img
-                        src={data.artists[1].image}
-                        alt={data.artists[1].name}
-                        className="wrapped-podium-img"
-                      />
-                    ) : (
-                      <div className="wrapped-podium-placeholder">
-                        {data.artists[1].name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="wrapped-podium-name">
-                      {data.artists[1].name}
-                    </p>
-                    <p className="wrapped-podium-plays">
-                      {Number(data.artists[1].playcount).toLocaleString()} plays
-                    </p>
-                  </div>
-                )}
-
-                {/* #1 - Center (Winner) */}
-                {data?.artists[0] && (
-                  <div className="wrapped-podium-item wrapped-podium-1">
-                    <span className="wrapped-podium-rank">#1</span>
-                    {data.artists[0].image ? (
-                      <img
-                        src={data.artists[0].image}
-                        alt={data.artists[0].name}
-                        className="wrapped-podium-img"
-                      />
-                    ) : (
-                      <div className="wrapped-podium-placeholder">
-                        {data.artists[0].name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="wrapped-podium-name">
-                      {data.artists[0].name}
-                    </p>
-                    <p className="wrapped-podium-plays">
-                      {Number(data.artists[0].playcount).toLocaleString()} plays
-                    </p>
-                  </div>
-                )}
-
-                {/* #3 - Right Center */}
-                {data?.artists[2] && (
-                  <div className="wrapped-podium-item wrapped-podium-3">
-                    <span className="wrapped-podium-rank">#3</span>
-                    {data.artists[2].image ? (
-                      <img
-                        src={data.artists[2].image}
-                        alt={data.artists[2].name}
-                        className="wrapped-podium-img"
-                      />
-                    ) : (
-                      <div className="wrapped-podium-placeholder">
-                        {data.artists[2].name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="wrapped-podium-name">
-                      {data.artists[2].name}
-                    </p>
-                    <p className="wrapped-podium-plays">
-                      {Number(data.artists[2].playcount).toLocaleString()} plays
-                    </p>
-                  </div>
-                )}
-
-                {/* #5 - Far Right */}
-                {data?.artists[4] && (
-                  <div className="wrapped-podium-item wrapped-podium-5">
-                    <span className="wrapped-podium-rank">#5</span>
-                    {data.artists[4].image ? (
-                      <img
-                        src={data.artists[4].image}
-                        alt={data.artists[4].name}
-                        className="wrapped-podium-img"
-                      />
-                    ) : (
-                      <div className="wrapped-podium-placeholder">
-                        {data.artists[4].name.charAt(0)}
-                      </div>
-                    )}
-                    <p className="wrapped-podium-name">
-                      {data.artists[4].name}
-                    </p>
-                    <p className="wrapped-podium-plays">
-                      {Number(data.artists[4].playcount).toLocaleString()} plays
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* SLIDE 3: TOP TRACKS LIST */}
-          <div className="wrapped-slide wrapped-slide-tracks">
-            <div className="wrapped-slide-content">
-              <h2 className="wrapped-slide-heading">top tracks</h2>
-              <div className="wrapped-tracks-list">
-                {data?.tracks.map((t: any, i: number) => (
-                  <div key={i} className="wrapped-track-row">
-                    <span className="wrapped-track-rank">{i + 1}</span>
-                    {t.image ? (
-                      <img
-                        src={t.image}
-                        alt={t.name}
-                        className="wrapped-track-img"
-                      />
-                    ) : (
-                      <div className="wrapped-track-placeholder">
-                        {t.name.charAt(0)}
-                      </div>
-                    )}
-                    <div className="wrapped-track-info">
-                      <p className="wrapped-track-name">{t.name}</p>
-                      <p className="wrapped-track-artist">{t.artist?.name}</p>
-                    </div>
-                    <p className="wrapped-track-plays">
-                      {Number(t.playcount).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* SLIDE 4: TASTE DNA */}
-          <div className="wrapped-slide wrapped-slide-taste">
-            <div className="wrapped-slide-content">
-              <h2 className="wrapped-slide-heading">taste dna</h2>
-              <div className="wrapped-taste-genres">
-                {data?.topGenres.map((g: any, i: number) => (
-                  <div key={i} className="wrapped-taste-genre">
-                    <p className="wrapped-taste-genre-name">{g.name}</p>
-                    <div className="wrapped-taste-genre-bar">
-                      <div
-                        className="wrapped-taste-genre-fill"
-                        style={{
-                          width: `${(g.percentage / maxGenrePercentage) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <p className="wrapped-taste-genre-pct">{g.percentage}%</p>
-                  </div>
-                ))}
-              </div>
-              <div className="wrapped-taste-sound">
-                <p className="wrapped-taste-sound-label">your sound</p>
-                <p className="wrapped-taste-sound-value">
-                  {data?.topGenres
-                    .slice(0, 3)
-                    .map((g: any) => g.name)
-                    .join(" • ")}
+        ) : (
+          <div
+            className="wrapped-slide-track"
+            style={{ transform: `translateX(-${slide * 100}%)` }}
+          >
+            {/* SLIDE 1: COVER */}
+            <div className="wrapped-slide wrapped-slide-cover">
+              <div className="wrapped-slide-content">
+                <p className="wrapped-slide-eyebrow">scrobbler wrapped</p>
+                <h1 className="wrapped-slide-username">{data?.user.name}</h1>
+                <p className="wrapped-slide-scrobbles">
+                  {Number(data?.user.playcount).toLocaleString()}
                 </p>
-              </div>
-              <div className="wrapped-taste-discovery">
-                <div className="wrapped-taste-discovery-labels">
-                  <span>underground</span>
-                  <span>mainstream</span>
-                </div>
-                <div className="wrapped-taste-discovery-bar">
-                  <div
-                    className="wrapped-taste-discovery-fill"
-                    style={{ width: `${data?.discoveryScore}%` }}
-                  />
-                </div>
+                <p className="wrapped-slide-scrobbles-label">total scrobbles</p>
+                <p className="wrapped-slide-scrobbles-alltime">all time</p>
+                {data?.periodLabel !== "all time" && (
+                  <p className="wrapped-slide-period">{data?.periodLabel}</p>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* SLIDE 5: BY THE NUMBERS */}
-          <div className="wrapped-slide wrapped-slide-stats">
-            <div className="wrapped-slide-content">
-              <h2 className="wrapped-slide-heading">by the numbers</h2>
-              <div className="wrapped-stats-grid">
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">
-                    {data?.artistCount.toLocaleString()}
-                  </p>
-                  <p className="wrapped-stat-label">artists</p>
-                </div>
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">
-                    {data?.trackCount.toLocaleString()}
-                  </p>
-                  <p className="wrapped-stat-label">tracks</p>
-                </div>
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">
-                    {data?.albumCount.toLocaleString()}
-                  </p>
-                  <p className="wrapped-stat-label">albums</p>
-                </div>
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">{data?.discoveryScore}%</p>
-                  <p className="wrapped-stat-label">underground</p>
-                </div>
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">
-                    {data?.topGenres[0]?.name || "—"}
-                  </p>
-                  <p className="wrapped-stat-label">top genre</p>
-                </div>
-                <div className="wrapped-stat-box">
-                  <p className="wrapped-stat-value">{data?.dailyAvg}</p>
-                  <p className="wrapped-stat-label">daily avg</p>
+            {/* SLIDE 2: TOP ARTISTS PODIUM */}
+            <div className="wrapped-slide wrapped-slide-artists">
+              <div className="wrapped-slide-content">
+                <h2 className="wrapped-slide-heading">top artists</h2>
+                <div className="wrapped-podium">
+                  {data?.artists[3] && (
+                    <div className="wrapped-podium-item wrapped-podium-4">
+                      <span className="wrapped-podium-rank">#4</span>
+                      {data.artists[3].image ? (
+                        <img
+                          src={data.artists[3].image}
+                          alt={data.artists[3].name}
+                          className="wrapped-podium-img"
+                        />
+                      ) : (
+                        <div className="wrapped-podium-placeholder">
+                          {data.artists[3].name.charAt(0)}
+                        </div>
+                      )}
+                      <button
+                        className="wrapped-podium-name"
+                        onClick={() =>
+                          openModal("artist", data.artists[3].name)
+                        }
+                      >
+                        {data.artists[3].name}
+                      </button>
+                      <p className="wrapped-podium-plays">
+                        {Number(data.artists[3].playcount).toLocaleString()}{" "}
+                        plays
+                      </p>
+                    </div>
+                  )}
+
+                  {data?.artists[1] && (
+                    <div className="wrapped-podium-item wrapped-podium-2">
+                      <span className="wrapped-podium-rank">#2</span>
+                      {data.artists[1].image ? (
+                        <img
+                          src={data.artists[1].image}
+                          alt={data.artists[1].name}
+                          className="wrapped-podium-img"
+                        />
+                      ) : (
+                        <div className="wrapped-podium-placeholder">
+                          {data.artists[1].name.charAt(0)}
+                        </div>
+                      )}
+                      <button
+                        className="wrapped-podium-name"
+                        onClick={() =>
+                          openModal("artist", data.artists[1].name)
+                        }
+                      >
+                        {data.artists[1].name}
+                      </button>
+                      <p className="wrapped-podium-plays">
+                        {Number(data.artists[1].playcount).toLocaleString()}{" "}
+                        plays
+                      </p>
+                    </div>
+                  )}
+
+                  {data?.artists[0] && (
+                    <div className="wrapped-podium-item wrapped-podium-1">
+                      <span className="wrapped-podium-rank">#1</span>
+                      {data.artists[0].image ? (
+                        <img
+                          src={data.artists[0].image}
+                          alt={data.artists[0].name}
+                          className="wrapped-podium-img"
+                        />
+                      ) : (
+                        <div className="wrapped-podium-placeholder">
+                          {data.artists[0].name.charAt(0)}
+                        </div>
+                      )}
+                      <button
+                        className="wrapped-podium-name"
+                        onClick={() =>
+                          openModal("artist", data.artists[0].name)
+                        }
+                      >
+                        {data.artists[0].name}
+                      </button>
+                      <p className="wrapped-podium-plays">
+                        {Number(data.artists[0].playcount).toLocaleString()}{" "}
+                        plays
+                      </p>
+                    </div>
+                  )}
+
+                  {data?.artists[2] && (
+                    <div className="wrapped-podium-item wrapped-podium-3">
+                      <span className="wrapped-podium-rank">#3</span>
+                      {data.artists[2].image ? (
+                        <img
+                          src={data.artists[2].image}
+                          alt={data.artists[2].name}
+                          className="wrapped-podium-img"
+                        />
+                      ) : (
+                        <div className="wrapped-podium-placeholder">
+                          {data.artists[2].name.charAt(0)}
+                        </div>
+                      )}
+                      <button
+                        className="wrapped-podium-name"
+                        onClick={() =>
+                          openModal("artist", data.artists[2].name)
+                        }
+                      >
+                        {data.artists[2].name}
+                      </button>
+                      <p className="wrapped-podium-plays">
+                        {Number(data.artists[2].playcount).toLocaleString()}{" "}
+                        plays
+                      </p>
+                    </div>
+                  )}
+
+                  {data?.artists[4] && (
+                    <div className="wrapped-podium-item wrapped-podium-5">
+                      <span className="wrapped-podium-rank">#5</span>
+                      {data.artists[4].image ? (
+                        <img
+                          src={data.artists[4].image}
+                          alt={data.artists[4].name}
+                          className="wrapped-podium-img"
+                        />
+                      ) : (
+                        <div className="wrapped-podium-placeholder">
+                          {data.artists[4].name.charAt(0)}
+                        </div>
+                      )}
+                      <button
+                        className="wrapped-podium-name"
+                        onClick={() =>
+                          openModal("artist", data.artists[4].name)
+                        }
+                      >
+                        {data.artists[4].name}
+                      </button>
+                      <p className="wrapped-podium-plays">
+                        {Number(data.artists[4].playcount).toLocaleString()}{" "}
+                        plays
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-              <p className="wrapped-stats-footer">made with scrobbler</p>
+            </div>
+
+            {/* SLIDE 3: TOP TRACKS LIST */}
+            <div className="wrapped-slide wrapped-slide-tracks">
+              <div className="wrapped-slide-content">
+                <h2 className="wrapped-slide-heading">top tracks</h2>
+                <div className="wrapped-tracks-list">
+                  {data?.tracks.map((t: any, i: number) => (
+                    <div key={i} className="wrapped-track-row">
+                      <span className="wrapped-track-rank">{i + 1}</span>
+                      {t.image ? (
+                        <img
+                          src={t.image}
+                          alt={t.name}
+                          className="wrapped-track-img"
+                        />
+                      ) : (
+                        <div className="wrapped-track-placeholder">
+                          {t.name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="wrapped-track-info">
+                        <button
+                          className="wrapped-track-name"
+                          onClick={() =>
+                            openModal("track", t.name, t.artist?.name)
+                          }
+                        >
+                          {t.name}
+                        </button>
+                        <p className="wrapped-track-artist">{t.artist?.name}</p>
+                      </div>
+                      <p className="wrapped-track-plays">
+                        {Number(t.playcount).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* SLIDE 4: TASTE DNA */}
+            <div className="wrapped-slide wrapped-slide-taste">
+              <div className="wrapped-slide-content">
+                <h2 className="wrapped-slide-heading">taste dna</h2>
+                <div className="wrapped-taste-genres">
+                  {data?.topGenres.map((g: any, i: number) => (
+                    <div key={i} className="wrapped-taste-genre">
+                      <p className="wrapped-taste-genre-name">{g.name}</p>
+                      <div className="wrapped-taste-genre-bar">
+                        <div
+                          className="wrapped-taste-genre-fill"
+                          style={{
+                            width: `${(g.percentage / maxGenrePercentage) * 100}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="wrapped-taste-genre-pct">{g.percentage}%</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="wrapped-taste-sound">
+                  <p className="wrapped-taste-sound-label">your sound</p>
+                  <p className="wrapped-taste-sound-value">
+                    {data?.topGenres
+                      .slice(0, 3)
+                      .map((g: any) => g.name)
+                      .join(" • ")}
+                  </p>
+                </div>
+                <div className="wrapped-taste-discovery">
+                  <div className="wrapped-taste-discovery-labels">
+                    <span>underground</span>
+                    <span>mainstream</span>
+                  </div>
+                  <div className="wrapped-taste-discovery-bar">
+                    <div
+                      className="wrapped-taste-discovery-fill"
+                      style={{ width: `${data?.discoveryScore}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SLIDE 5: BY THE NUMBERS */}
+            <div className="wrapped-slide wrapped-slide-stats">
+              <div className="wrapped-slide-content">
+                <h2 className="wrapped-slide-heading">by the numbers</h2>
+                <div className="wrapped-stats-grid">
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">
+                      {data?.artistCount.toLocaleString()}
+                    </p>
+                    <p className="wrapped-stat-label">artists</p>
+                  </div>
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">
+                      {data?.trackCount.toLocaleString()}
+                    </p>
+                    <p className="wrapped-stat-label">tracks</p>
+                  </div>
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">
+                      {data?.albumCount.toLocaleString()}
+                    </p>
+                    <p className="wrapped-stat-label">albums</p>
+                  </div>
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">
+                      {data?.discoveryScore}%
+                    </p>
+                    <p className="wrapped-stat-label">underground</p>
+                  </div>
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">
+                      {data?.topGenres[0]?.name || "—"}
+                    </p>
+                    <p className="wrapped-stat-label">top genre</p>
+                  </div>
+                  <div className="wrapped-stat-box">
+                    <p className="wrapped-stat-value">{data?.dailyAvg}</p>
+                    <p className="wrapped-stat-label">daily avg</p>
+                  </div>
+                </div>
+                <p className="wrapped-stats-footer">made with scrobbler</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="wrapped-nav">

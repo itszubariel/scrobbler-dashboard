@@ -17,14 +17,16 @@ scrobbler dashboard is the web companion to the [scrobbler Discord bot](https://
 
 ## Features
 
-- **Overview** - Total scrobbles, top artists, albums, and tracks with AI-generated bio
-- **Charts** - Interactive grid visualizations of your listening history (3×3 to 6×6)
-- **Recent** - Real-time display of your current and recent plays
-- **Taste** - Your top 50 artists, albums, and tracks
-- **Wrapped** - Spotify Wrapped-style summaries of your music year
-- **Discover** - Find new music based on your taste with Last.fm recommendations
-- **Insights** - Music personality analysis based on listening patterns
-- **Compatibility** - Compare your music taste with other Last.fm users
+- **Overview**: Total scrobbles, top artist and track, now playing card, and AI-generated bio
+- **Recent**: Paginated listening history (up to 100 tracks) with now playing status
+- **Charts**: Grid visualizations of your top artists, tracks, and albums across time periods
+- **Taste**: Your top 50 genres weighted by playcount
+- **Streaks**: Longest consecutive daily listening streaks for artists, tracks, and albums over the last 90 days
+- **Insights**: Music personality analysis and compatibility checker with other Last.fm users
+- **Discover**: Personalized recommendations based on your listening history, plus an underground score
+- **Wrapped**: Spotify Wrapped-style slideshow summary of your listening across any time period
+
+All names in the dashboard are clickable, tap any artist, track, album, or genre to open a detail card with stats, tags, bio, and a link to Last.fm.
 
 ---
 
@@ -55,5 +57,5 @@ This repository is public so all users can verify what the dashboard does and co
 - [Groq](https://groq.com) (llama-3.3-70b-versatile) for AI-generated user bios
 - [Last.fm API](https://www.last.fm/api) for music data
 - [Deezer API](https://developers.deezer.com) for artist artwork
-- [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI) for album/track artwork
+- [iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI) for album and track artwork
 

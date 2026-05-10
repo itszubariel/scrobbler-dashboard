@@ -557,3 +557,51 @@ export function SkeletonInsights() {
     </div>
   );
 }
+
+export function SkeletonStreaks() {
+  return (
+    <div className="streaks-section">
+      <div className="section-header">
+        <div
+          className="skeleton-text skeleton-text-title"
+          style={{ width: "150px" }}
+        />
+        <div
+          className="skeleton-text skeleton-text-sm"
+          style={{ width: "320px" }}
+        />
+      </div>
+
+      {["artist streaks", "track streaks", "album streaks"].map((label) => (
+        <div key={label} className="streaks-category">
+          <div
+            className="skeleton-text skeleton-text-lg"
+            style={{ width: "160px", marginBottom: "16px" }}
+          />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="streaks-row">
+              <div
+                className="skeleton-text skeleton-text-sm"
+                style={{ width: "24px", flexShrink: 0 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div
+                  className="skeleton-text skeleton-text-md"
+                  style={{ width: "55%", marginBottom: "6px" }}
+                />
+                <div
+                  className="skeleton-text skeleton-text-sm"
+                  style={{ width: "35%" }}
+                />
+              </div>
+              <div
+                className="skeleton-text skeleton-text-sm"
+                style={{ width: "80px" }}
+              />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
