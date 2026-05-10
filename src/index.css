@@ -4287,6 +4287,13 @@ body::before {
   cursor: pointer;
 }
 
+/* Override alignment for centered card context */
+.overview-stat-card-link {
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
 .streaks-name:hover,
 .wrapped-podium-name:hover,
 .wrapped-track-name:hover,
