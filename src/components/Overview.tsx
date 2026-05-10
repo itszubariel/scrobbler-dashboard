@@ -23,7 +23,6 @@ interface OverviewData {
   user: any;
   topArtist: any;
   topTrack: any;
-  bio: string;
 }
 
 async function fetchArtistImage(artistName: string): Promise<string | null> {
@@ -70,7 +69,22 @@ export default function Overview({ username }: Props) {
     () => getMemoryCache<any>(`now-playing-${username}`) === null,
   );
 
+  // Bio has its own 6-hour cache, separate from the main overview data
+  const [bio, setBio] = useState<string>(() => {
+    const cached = getCachedDataSync<string>(`bio-${username}`);
+    return cached || "";
+  });
   useEffect(() => {
+    // Bust empty bio cache so it gets regenerated
+    try {
+      const bioKey = `scrobbler_cache_bio-${username}`;
+      const stored = localStorage.getItem(bioKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (!parsed.data) localStorage.removeItem(bioKey);
+      }
+    } catch {}
+
     const cachedOverview = cachedFetch<OverviewData>(
       `overview-all-${username}`,
       async () => {
@@ -100,9 +114,18 @@ export default function Overview({ username }: Props) {
           : null;
         const topTrack = rawTrack ? { ...rawTrack, image: trackImage } : null;
 
-        // Fetch AI bio (uses top 5 artists already fetched)
-        let bio = "";
+        return { user, topArtist, topTrack };
+      },
+      CACHE_TTL.TOP_ARTISTS, // 2 hours
+    );
+
+    // Bio fetched separately with 6-hour TTL
+    cachedFetch(
+      `bio-${username}`,
+      async () => {
         try {
+          const artistsData = await getTopArtists(username, "overall", "5");
+          const artists = artistsData.topartists?.artist || [];
           const topArtistNames = artists.map((a: any) => a.name).join(", ");
 
           const tagCounts: Record<string, number> = {};
@@ -127,17 +150,22 @@ export default function Overview({ username }: Props) {
             .map(([name]) => name)
             .join(", ");
 
-          const bioRes = await fetch(
-            `/api/generate-bio?topArtists=${encodeURIComponent(topArtistNames)}&topGenres=${encodeURIComponent(topGenres)}&totalScrobbles=${user.playcount}`,
-          );
-          const bioData = await bioRes.json();
-          bio = bioData.bio || "";
-        } catch {}
+          const userInfo = await getUserInfo(username);
+          const totalScrobbles = userInfo.user.playcount;
 
-        return { user, topArtist, topTrack, bio };
+          const res = await fetch(
+            `/.netlify/functions/generate-bio?topArtists=${encodeURIComponent(topArtistNames)}&topGenres=${encodeURIComponent(topGenres)}&totalScrobbles=${totalScrobbles}`,
+          );
+          const bioData = await res.json();
+          return bioData.bio || "";
+        } catch {
+          return "";
+        }
       },
-      CACHE_TTL.TOP_ARTISTS, // 2 hours
-    );
+      6 * 60 * 60 * 1000, // 6 hours
+    ).then((bioText) => {
+      if (bioText) setBio(bioText);
+    });
 
     const cachedNowPlaying = getMemoryCache<any>(`now-playing-${username}`)
       ? Promise.resolve(getMemoryCache<any>(`now-playing-${username}`))
@@ -157,7 +185,7 @@ export default function Overview({ username }: Props) {
 
   if (!overviewData) return <SkeletonOverview />;
 
-  const { user, topArtist, topTrack, bio } = overviewData;
+  const { user, topArtist, topTrack } = overviewData;
   const scrobbleCount = Number(user?.playcount) || 0;
 
   const npIsLive = nowPlaying?.["@attr"]?.nowplaying === "true";
@@ -194,13 +222,17 @@ export default function Overview({ username }: Props) {
             </>
           ) : (
             <div className="overview-banner-meta">
-              {user?.country && <span>{user.country}</span>}
-              <span>
-                member since{" "}
-                {new Date(
-                  Number(user?.registered?.unixtime) * 1000,
-                ).getFullYear()}
-              </span>
+              {user?.country && user.country !== "None" && (
+                <span>{user.country}</span>
+              )}
+              {Number(user?.registered?.unixtime) > 0 && (
+                <span>
+                  member since{" "}
+                  {new Date(
+                    Number(user.registered.unixtime) * 1000,
+                  ).getFullYear()}
+                </span>
+              )}
             </div>
           )}
         </div>
