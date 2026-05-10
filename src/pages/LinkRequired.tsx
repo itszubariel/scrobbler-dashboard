@@ -136,11 +136,7 @@ export default function LinkRequired() {
           </a>
           <button
             onClick={() => window.location.reload()}
-            className="btn"
-            style={{
-              background: "transparent",
-              border: "1px solid var(--color-fog)",
-            }}
+            className="btn btn-secondary"
           >
             ↻ refresh page
           </button>
