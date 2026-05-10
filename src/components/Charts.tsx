@@ -4,6 +4,10 @@ import { cachedFetch, getCachedDataSync, CACHE_TTL } from "../lib/cache";
 import { useModal } from "../context/ModalContext";
 import type { ModalType } from "../context/ModalContext";
 
+interface Props {
+  username: string;
+}
+
 const PERIODS = [
   { label: "7 days", value: "7day" },
   { label: "1 month", value: "1month" },

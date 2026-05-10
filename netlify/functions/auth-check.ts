@@ -16,7 +16,10 @@ export const handler: Handler = async (event) => {
 
   try {
     const sessionToken = sessionCookie.split("=")[1];
-    const sessionData = jwt.verify(sessionToken, process.env.JWT_SECRET!) as any;
+    const sessionData = jwt.verify(
+      sessionToken,
+      process.env.JWT_SECRET!,
+    ) as any;
 
     return {
       statusCode: 200,
@@ -31,7 +34,10 @@ export const handler: Handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 401,
-      body: JSON.stringify({ authenticated: false, error: "Invalid or expired session" }),
+      body: JSON.stringify({
+        authenticated: false,
+        error: "Invalid or expired session",
+      }),
     };
   }
 };
