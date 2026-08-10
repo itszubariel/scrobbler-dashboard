@@ -133,7 +133,7 @@ export default function Dashboard() {
           <div className="sidebar-footer">
             <div className="sidebar-bot-links">
               <a
-                href="https://scrobbler.netlify.app"
+                href="https://scrobbler.is-a.bot"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="sidebar-bot-link"
@@ -141,7 +141,7 @@ export default function Dashboard() {
                 ✦ check out the bot
               </a>
               <a
-                href="https://scrobbler.netlify.app/invite"
+                href="https://scrobbler.is-a.bot/invite"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="sidebar-bot-link"

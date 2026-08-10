@@ -40,7 +40,7 @@ export const handler: Handler = async (event) => {
         client_secret: process.env.DISCORD_CLIENT_SECRET!,
         grant_type: "authorization_code",
         code,
-        redirect_uri: `https://scrobbler-dashboard.netlify.app/callback`,
+        redirect_uri: `https://app.scrobbler.is-a.bot/callback`,
       }),
     });
 

@@ -127,7 +127,7 @@ export default function LinkRequired() {
           }}
         >
           <a
-            href="https://scrobbler.netlify.app/invite"
+            href="https://scrobbler.is-a.bot/invite"
             target="_blank"
             rel="noopener noreferrer"
             className="btn"

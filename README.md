@@ -6,12 +6,12 @@ A web dashboard for the scrobbler Discord bot. View your Last.fm stats, discover
 
 ## What is scrobbler dashboard?
 
-scrobbler dashboard is the web companion to the [scrobbler Discord bot](https://scrobbler.netlify.app). After linking your Last.fm account through the bot, you can log in with Discord to access your personalized music dashboard with detailed stats, charts, and insights.
+scrobbler dashboard is the web companion to the [scrobbler Discord bot](https://scrobbler.is-a.bot). After linking your Last.fm account through the bot, you can log in with Discord to access your personalized music dashboard with detailed stats, charts, and insights.
 
-- **Dashboard:** [scrobbler-dashboard.netlify.app](https://scrobbler-dashboard.netlify.app)
+- **Dashboard:** [app.scrobbler.is-a.bot](https://app.scrobbler.is-a.bot)
 - **Discord Bot Repository:** [scrobbler](https://github.com/itszubariel/scrobbler)
-- **Bot Website:** [scrobbler.netlify.app](https://scrobbler.netlify.app)
-- **Invite Bot:** [scrobbler.netlify.app/invite](https://scrobbler.netlify.app/invite)
+- **Bot Website:** [scrobbler.is-a.bot](https://scrobbler.is-a.bot)
+- **Invite Bot:** [scrobbler.is-a.bot/invite](https://scrobbler.is-a.bot/invite)
 
 ---
 
@@ -32,9 +32,9 @@ All names in the dashboard are clickable, tap any artist, track, album, or genre
 
 ## Getting Started
 
-1. **Invite the bot** - [Add scrobbler to your Discord server](https://scrobbler.netlify.app/invite)
+1. **Invite the bot** - [Add scrobbler to your Discord server](https://scrobbler.is-a.bot/invite)
 2. **Link your account** - Use `/link` command in Discord to connect your Last.fm
-3. **Log in** - Visit [scrobbler-dashboard.netlify.app](https://scrobbler-dashboard.netlify.app) and log in with Discord
+3. **Log in** - Visit [app.scrobbler.is-a.bot](https://app.scrobbler.is-a.bot) and log in with Discord
 4. **Explore** - View your stats, charts, and insights!
 
 ---

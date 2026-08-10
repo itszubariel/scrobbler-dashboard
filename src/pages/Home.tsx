@@ -85,7 +85,7 @@ export default function Home() {
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
               </svg>
             </button>
-            <a href="https://scrobbler.netlify.app" className="nav-btn">
+            <a href="https://scrobbler.is-a.bot" className="nav-btn">
               main site
             </a>
           </div>
